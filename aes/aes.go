@@ -50,12 +50,19 @@ func (c *aesCipher) Encrypt(dst, src []byte) {
 		panic("crypto/aes: output not full block")
 	}
 
+	var err error
+
 	// Initialize for single-part ECB encryption
-	c.HSM.EncryptInit(c.Session, c.mech, c.oh)
+	err = c.HSM.EncryptInit(c.Session, c.mech, c.oh)
+	if err != nil {
+		panic(err)
+	}
 
 	// Execute single-part ECB encryption of src
-	var err error
-	dst, err = c.HSM.Encrypt(c.Session, src)
+	retSlice, err := c.HSM.Encrypt(c.Session, src)
+
+	// Since the pkcs11 Encrypt function returns a new slice, need to copy into dst
+	copy(dst, retSlice)
 
 	if err != nil {
 		panic(err)
@@ -75,7 +82,10 @@ func (c *aesCipher) Decrypt(dst, src []byte) {
 
 	// Execute single-part ECB decryption of src
 	var err error
-	dst, err = c.HSM.Decrypt(c.Session, src)
+	retSlice, err := c.HSM.Decrypt(c.Session, src)
+
+	// Since the pkcs11 Decrypt function returns a new slice, need to copy into dst
+	copy(dst, retSlice)
 
 	if err != nil {
 		panic(err)

@@ -18,6 +18,7 @@ type Context struct {
 	Session pkcs11.SessionHandle
 }
 
+// TODO: make these an Options struct
 func New(lib string, pin string, sessionPoolSize int) (*Context, error) {
 	ctx := Context{}
 
@@ -28,6 +29,7 @@ func New(lib string, pin string, sessionPoolSize int) (*Context, error) {
 		return nil, err
 	}
 
+	// TODO: add way to specify slot
 	slots, err := ctx.HSM.GetSlotList(true)
 	if err != nil {
 		return nil, err
@@ -66,13 +68,38 @@ func (c *Context) PutSession(pkcs11.SessionHandle) {
 
 // Useful helper functions
 
-// FindObjectByID searches for a token object by CKA_ID and returns the object handle
+// FindObjectByID searches for a session or token object by CKA_ID and returns the object handle
 func (c *Context) FindObjectByID(id string) (pkcs11.ObjectHandle, error) {
-	return 0, nil
+	template := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_ID, id),
+	}
+
+	var ret pkcs11.ObjectHandle
+	var err error
+
+	err = c.HSM.FindObjectsInit(c.Session, template)
+	if err != nil {
+		return ret, err
+	}
+
+	oids, _, err := c.HSM.FindObjects(c.Session, 1)
+	if err != nil {
+		return ret, err
+	}
+
+	err = c.HSM.FindObjectsFinal(c.Session)
+	if err != nil {
+		return ret, err
+	}
+
+	ret = oids[0]
+
+	return ret, nil
 }
 
 // FindObjectByLabel searches for a token object by CKA_LABEL and returns the object handle
 func (c *Context) FindObjectByLabel(label string) (pkcs11.ObjectHandle, error) {
+
 	return 0, nil
 }
 
