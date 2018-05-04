@@ -14,11 +14,11 @@ import (
 type Context struct {
 	HSM *pkcs11.Ctx
 
-	// TODO: make this a pool of sessions, default of size 1
+	// TODO: make this a concurrent-safe pool of sessions, default of size 1
 	Session pkcs11.SessionHandle
 }
 
-// TODO: make these an Options struct
+// TODO: make these an Options struct?
 func New(lib string, pin string, sessionPoolSize int) (*Context, error) {
 	ctx := Context{}
 
@@ -29,12 +29,13 @@ func New(lib string, pin string, sessionPoolSize int) (*Context, error) {
 		return nil, err
 	}
 
-	// TODO: add way to specify slot
+	// TODO: add way to specify slot rather than always using the first one
 	slots, err := ctx.HSM.GetSlotList(true)
 	if err != nil {
 		return nil, err
 	}
 
+	// TODO: make the session read/write a choice?
 	ctx.Session, err = ctx.HSM.OpenSession(slots[0], pkcs11.CKF_SERIAL_SESSION|pkcs11.CKF_RW_SESSION)
 	if err != nil {
 		return nil, err
@@ -48,6 +49,7 @@ func New(lib string, pin string, sessionPoolSize int) (*Context, error) {
 	return &ctx, nil
 }
 
+// Destroy tears down the HSM session and context
 func (c *Context) Destroy() {
 	// Log out of and close all sessions
 	c.HSM.Logout(c.Session)
@@ -59,12 +61,12 @@ func (c *Context) Destroy() {
 }
 
 func (c *Context) GetSession() pkcs11.SessionHandle {
-	return 0
+	return c.Session
 }
 
-func (c *Context) PutSession(pkcs11.SessionHandle) {
+// func (c *Context) PutSession(pkcs11.SessionHandle) {
 
-}
+// }
 
 // Useful helper functions
 
